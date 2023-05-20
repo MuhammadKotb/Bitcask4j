@@ -9,8 +9,10 @@
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     id 'application'
+	id 'org.springframework.boot' version '3.1.0'
 }
 
+apply plugin: 'io.spring.dependency-management'
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
@@ -19,9 +21,11 @@ repositories {
 dependencies {
     // Use JUnit Jupiter for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.1'
-
+	
     // This dependency is used by the application.
-    implementation 'com.google.guava:guava:31.1-jre'
+    implementation 'com.google.guava:guava:31.1-jre',
+	implementation('org.springframework.boot:spring-boot-starter-web')
+	implementation('org.springframework.boot:spring-boot-starter-data-jpa')
 }
 
 application {
