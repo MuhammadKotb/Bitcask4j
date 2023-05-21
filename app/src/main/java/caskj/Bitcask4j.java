@@ -2,15 +2,29 @@ package caskj;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Bitcask4j implements Bitcask {
 
-    @Override
-    public BitcaskHandle open(File dir) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'open'");
+
+    private Map<File, BitcaskHandle> file2handle;
+
+    public Bitcask4j() {
+        file2handle = new HashMap<>();
     }
+    @Override
+    public BitcaskHandle open(File dir) throws Exception {
+        dir.mkdir();
+        if(file2handle.containsKey(dir)) return file2handle.get(dir);
+        else {
+            BitcaskHandle handle = new BitcaskHandle4j(dir);
+            file2handle.put(dir, handle);
+            return handle;
+        }
+    }
+
 
     @Override
     public <T extends Serializable> int get(BitcaskHandle bitcaskHandle, T key) {
