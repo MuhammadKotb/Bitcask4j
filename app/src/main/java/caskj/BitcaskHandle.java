@@ -1,7 +1,10 @@
 package caskj;
 
+import java.io.IOException;
+import java.io.Serializable;
+
 public interface BitcaskHandle {
-    void append(int key, int val);
+    <T extends Serializable, K extends Serializable> void append(T key, K val) throws IOException ;
     void merge();
-    void get(int key);
+    <T extends Serializable> void get(T key);
 }

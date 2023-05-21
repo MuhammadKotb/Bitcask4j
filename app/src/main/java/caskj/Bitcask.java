@@ -4,11 +4,11 @@ import java.io.File;
 import java.util.List;
 
 public interface Bitcask {
-    BitCaskHandle open(File dir);
-    int get(BitCaskHandle bitcaskHandle, int key);
-    void put(BitCaskHandle buBitCaskHandle, int key, int val);
-    List<Integer> listKeys(BitCaskHandle bitCaskHandle);
+    BitcaskHandle open(File dir);
+    int get(BitcaskHandle bitcaskHandle, int key);
+    void put(BitcaskHandle buBitCaskHandle, int key, int val);
+    List<Integer> listKeys(BitcaskHandle bitCaskHandle);
     void merge(File dir);
-    void sync(BitCaskHandle bitCaskHandle);
-    void close(BitCaskHandle bitCaskHandle);
+    void sync(BitcaskHandle bitCaskHandle);
+    void close(BitcaskHandle bitCaskHandle);
 }

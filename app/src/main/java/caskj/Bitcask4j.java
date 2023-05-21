@@ -6,22 +6,22 @@ import java.util.List;
 public class Bitcask4j implements Bitcask {
 
     @Override
-    public BitCaskHandle open(File dir) {
+    public BitcaskHandle open(File dir) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'open'");
     }
     @Override
-    public int get(BitCaskHandle bitcaskHandle, int key) {
+    public int get(BitcaskHandle bitcaskHandle, int key) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'get'");
     }
     @Override
-    public void put(BitCaskHandle buBitCaskHandle, int key, int val) {
+    public void put(BitcaskHandle buBitCaskHandle, int key, int val) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'put'");
     }
     @Override
-    public List<Integer> listKeys(BitCaskHandle bitCaskHandle) {
+    public List<Integer> listKeys(BitcaskHandle bitCaskHandle) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'listKeys'");
     }
@@ -31,12 +31,12 @@ public class Bitcask4j implements Bitcask {
         throw new UnsupportedOperationException("Unimplemented method 'merge'");
     }
     @Override
-    public void sync(BitCaskHandle bitCaskHandle) {
+    public void sync(BitcaskHandle bitCaskHandle) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'sync'");
     }
     @Override
-    public void close(BitCaskHandle bitCaskHandle) {
+    public void close(BitcaskHandle bitCaskHandle) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'close'");
     }
