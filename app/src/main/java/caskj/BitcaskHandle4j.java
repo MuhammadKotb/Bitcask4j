@@ -17,20 +17,19 @@ import java.util.List;
 public class BitcaskHandle4j implements BitcaskHandle {
 
 
-    final private long maxFileSize_mb = 10;
+    final private long maxFileSize_kb = 100;
     private Keydir keydir;
     private File directory; 
     private File activeFile = null;
     public int currentFile = 0;   
-    public int offset = 0;
-    private FileOutputStream bitcaskWriter = null;
+    public long offset = 0;
     private FileOutputStream bitcaskDataWriter = null;
-    private File bitcaskFile = null;
 
 
     public BitcaskHandle4j(File dir) {
         directory = dir;
         this.init();
+        this.keydir = new Keydir4j();
     }
 
 
@@ -55,7 +54,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
         }
         else if(currentFile > 0 && this.activeFile != null) {
             long size = this.getFileSize(activeFile);
-            if(size >= this.maxFileSize_mb) {
+            if(size >= this.maxFileSize_kb) {
                 System.out.println("Created New overflow");
                 this.activeFile = createDataFile();
                 currentFile++;
@@ -65,7 +64,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
                 this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
             }
         }
-        
+        long offset_temp = offset;
         offset += writeTstamp(this.bitcaskDataWriter);
         System.out.println(offset);
         
@@ -74,8 +73,9 @@ public class BitcaskHandle4j implements BitcaskHandle {
         
         offset += writeKey(this.bitcaskDataWriter, key);
         System.out.println(offset);
-        
-        offset += writeValSize(this.bitcaskDataWriter, val);
+
+        int valSizetmp = writeValSize(this.bitcaskDataWriter, val); 
+        offset += valSizetmp;
         System.out.println(offset);
         
         offset += writeVal(this.bitcaskDataWriter, val);
@@ -84,13 +84,12 @@ public class BitcaskHandle4j implements BitcaskHandle {
         this.bitcaskDataWriter.flush();
 
 
-        try {
-            this.updateBitcaskFile(this.bitcaskWriter);
-            this.bitcaskWriter.flush();
-        } catch(Exception e){
-            System.out.println("Could not Update Bitcask file");
-            e.printStackTrace();
-        }
+
+        keydir.put(key, currentFile, valSizetmp, offset_temp, val.timestamp);
+
+        System.out.println(keydir);
+
+        
     }
 
     @Override
@@ -137,54 +136,27 @@ public class BitcaskHandle4j implements BitcaskHandle {
     }
 
     private long getFileSize(File file) {
-        return file.length() / (1024 * 1024);
+        return file.length() / (1024);
     }
 
-    private File createBitcaskFile() {
-        return new File(directory.getPath() + "/bitcask.txt");
-    } 
 
     private void init() {
-        List<File> files = Arrays.asList(this.directory.listFiles((f -> f.getName().equals("bitcask.txt"))));
-        if(files.size() == 0) {
-            try {
-                this.bitcaskFile = createBitcaskFile();
-                this.bitcaskWriter = new FileOutputStream(this.bitcaskFile, false);
-
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
+        File[] files = this.directory.listFiles();
+        System.out.println(files.length);
+        
+        if(files.length == 0) {
+            this.offset = 0;
+            this.currentFile = 0;
         }
         else {
-            try {
-                this.bitcaskFile = files.get(0);
-                FileInputStream fis = new FileInputStream(this.bitcaskFile);
-                readBitcaskFile(fis);
-                fis.close();
-                this.bitcaskWriter = new FileOutputStream(this.bitcaskFile, false);
-                this.activeFile = new File(this.directory.getPath() + "/data" + (this.currentFile - 1));
-                this.bitcaskDataWriter = new FileOutputStream(activeFile, true);    
-            }
-            catch(Exception e) {
-                e.printStackTrace();
-            }
+            this.currentFile = files.length - 1;
+            this.offset = files[files.length - 1].length();
+
         }
+        
         
     }
 
-    private void readBitcaskFile(FileInputStream fis) throws IOException{
-        byte[] currentFileBytes = fis.readNBytes(Integer.SIZE / Byte.SIZE);
-        this.currentFile = ByteBuffer.wrap(currentFileBytes).getInt();
-        byte[] offsetBytes = fis.readNBytes(Integer.SIZE / Byte.SIZE);
-        this.offset = ByteBuffer.wrap(offsetBytes).getInt();
-    }
-
-    private void updateBitcaskFile(FileOutputStream fos) throws IOException {
-        byte[] currentFileBytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(this.currentFile).array();
-        fos.write(currentFileBytes);
-        byte[] offsetBytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(this.offset).array();
-        fos.write(offsetBytes);
-    }
 
     
 }

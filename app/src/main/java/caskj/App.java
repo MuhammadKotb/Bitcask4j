@@ -9,9 +9,6 @@ import java.nio.ByteBuffer;
 
 
 
-
-
-
 public class App {
 	
 		
@@ -28,10 +25,12 @@ public class App {
 
         try {
             BitcaskHandle handle = bitcask.open(new File("/home/kotb/bitcaskDir"));
-            
-            bitcask.put(handle, 1511, status);
-            System.out.println(handle.getCurrentFile());
-            System.out.println(handle.getOffset());
+        
+            for(int i = 0; i < 10; i++) {
+                bitcask.put(handle, i % 5, status);
+                System.out.println(handle.getCurrentFile());
+                System.out.println(handle.getOffset());
+            }
 
 
         }
