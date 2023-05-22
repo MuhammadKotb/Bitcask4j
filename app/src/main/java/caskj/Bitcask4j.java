@@ -27,13 +27,13 @@ public class Bitcask4j implements Bitcask {
 
 
     @Override
-    public <T extends Serializable> int get(BitcaskHandle bitcaskHandle, T key) {
+    public Status get(BitcaskHandle bitcaskHandle, int key) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'get'");
     }
 
     @Override
-    public <T extends Serializable, K extends Serializable> void put(BitcaskHandle bitCaskHandle, T key, K val) {
+    public void put(BitcaskHandle bitCaskHandle, int key, Status val) {
         try {
             bitCaskHandle.append(key, val);
         }

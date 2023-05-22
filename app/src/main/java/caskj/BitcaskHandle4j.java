@@ -27,6 +27,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
     private FileOutputStream bitcaskDataWriter = null;
     private File bitcaskFile = null;
 
+
     public BitcaskHandle4j(File dir) {
         directory = dir;
         this.init();
@@ -39,12 +40,12 @@ public class BitcaskHandle4j implements BitcaskHandle {
     }
 
     @Override
-    public int getOffset() {
+    public long getOffset() {
         return this.offset;
     }
 
     @Override
-    public <T extends Serializable, K extends Serializable> void append(T key, K val) throws IOException {
+    public void append(int key, Status val) throws IOException {
 
         if(currentFile == 0 || this.activeFile == null) {
             System.out.println("Created New");
@@ -64,11 +65,22 @@ public class BitcaskHandle4j implements BitcaskHandle {
                 this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
             }
         }
+        
         offset += writeTstamp(this.bitcaskDataWriter);
-        offset += writeObjectSize(this.bitcaskDataWriter, key);
-        offset += writeObjectSize(this.bitcaskDataWriter, val);
-        offset += writeObject(this.bitcaskDataWriter, key);
-        offset += writeObject(this.bitcaskDataWriter, val);
+        System.out.println(offset);
+        
+        offset += writeKeySize(this.bitcaskDataWriter);
+        System.out.println(offset);
+        
+        offset += writeKey(this.bitcaskDataWriter, key);
+        System.out.println(offset);
+        
+        offset += writeValSize(this.bitcaskDataWriter, val);
+        System.out.println(offset);
+        
+        offset += writeVal(this.bitcaskDataWriter, val);
+        System.out.println(offset);
+        
         this.bitcaskDataWriter.flush();
 
 
@@ -88,42 +100,35 @@ public class BitcaskHandle4j implements BitcaskHandle {
     }
     
     @Override
-    public <T extends Serializable> void get(T key) {
+    public Status get(int key) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'get'");
     }
     
-    private <T extends Serializable> int writeObject(FileOutputStream fileOut, T obj) throws IOException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream out = new ObjectOutputStream(bos);
-        out.writeObject(obj);
-        out.flush();
-        byte[] bytes = bos.toByteArray();
-        bos.close();
-        out.close();
-        fileOut.write(bytes);
-        System.out.println(bytes.length);
+
+    private int writeKeySize(FileOutputStream fos) throws IOException {
+        byte[] bytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(4).array();
+        fos.write(bytes);
         return bytes.length;
     }
-
-    private <T extends Serializable> int writeObjectSize(FileOutputStream fileOut, T obj) throws IOException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream out = new ObjectOutputStream(bos);
-        out.writeObject(obj);
-        out.flush();
-        byte[] bytes = bos.toByteArray();
-        bos.close();
-        out.close();   
-        int size = bytes.length;
-        byte[] bytesSize = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(size).array(); 
-        fileOut.write(bytesSize);
-        System.out.println(bytesSize.length);
-        return bytesSize.length;
+    private int writeKey(FileOutputStream fos, int key) throws IOException {
+        byte[] bytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(key).array();
+        fos.write(bytes);
+        return bytes.length;
     }
-    private long writeTstamp(FileOutputStream fileOut) throws IOException {
+    private int writeValSize(FileOutputStream fos, Status val) throws IOException {
+        int bytesSize = StatusUtil.getStatusSize(val);
+        byte[] bytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(bytesSize).array();
+        fos.write(bytes);
+        return bytes.length;
+    }
+    private int writeVal(FileOutputStream fos, Status val) throws IOException {
+        int bytes = StatusWriter.write(fos, val);
+        return bytes;
+    }
+    private int writeTstamp(FileOutputStream fileOut) throws IOException {
         byte[] bytes = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).putLong(System.currentTimeMillis()).array();
         fileOut.write(bytes);
-        System.out.println(bytes.length);
         return bytes.length;
     }
 
@@ -168,9 +173,9 @@ public class BitcaskHandle4j implements BitcaskHandle {
     }
 
     private void readBitcaskFile(FileInputStream fis) throws IOException{
-        byte[] currentFileBytes = fis.readNBytes(4);
+        byte[] currentFileBytes = fis.readNBytes(Integer.SIZE / Byte.SIZE);
         this.currentFile = ByteBuffer.wrap(currentFileBytes).getInt();
-        byte[] offsetBytes = fis.readNBytes(4);
+        byte[] offsetBytes = fis.readNBytes(Integer.SIZE / Byte.SIZE);
         this.offset = ByteBuffer.wrap(offsetBytes).getInt();
     }
 
