@@ -2,5 +2,6 @@
 .gradle
 .vscode
 .vim
+*.log
 # Ignore Gradle build output directory
 build
