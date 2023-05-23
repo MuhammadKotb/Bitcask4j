@@ -12,7 +12,6 @@ public class StatusWriter {
         if(bytes == null) throw new NullPointerException();
         fos.write(bytes);
         return bytes.length;
-
     }      
 
 
