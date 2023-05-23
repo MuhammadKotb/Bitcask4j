@@ -28,8 +28,7 @@ public class Bitcask4j implements Bitcask {
 
     @Override
     public Status get(BitcaskHandle bitcaskHandle, int key) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'get'");
+        return bitcaskHandle.get(key);
     }
 
     @Override

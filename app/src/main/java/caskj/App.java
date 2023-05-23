@@ -26,12 +26,14 @@ public class App {
         try {
             BitcaskHandle handle = bitcask.open(new File("/home/kotb/bitcaskDir"));
         
-            for(int i = 0; i < 1; i++) {
-                bitcask.put(handle, i % 10, status);
-                System.out.println(handle.getCurrentFile());
-                System.out.println(handle.getOffset());
-            }
+            // for(int i = 0; i < 1000; i++) {
+            //     bitcask.put(handle, i % 30, status);
+            //     System.out.println(handle.getCurrentFile());
+            //     System.out.println(handle.getOffset());
+            // }
+            // System.out.println(handle.getKeydir());
 
+            System.out.println(bitcask.get(handle, 58));
         }
         catch(Exception e) {
             e.printStackTrace();

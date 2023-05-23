@@ -15,11 +15,11 @@ public class HintWriter {
         
         int ctr = 0;
 
-        for(int i = 0; i < hintBytes.length; i++) {
-            bytes[ctr++] = hintBytes[i];
-        }
         for(int i = 0; i < keyBytes.length; i++) {
             bytes[ctr++] = keyBytes[i];
+        }
+        for(int i = 0; i < hintBytes.length; i++) {
+            bytes[ctr++] = hintBytes[i];
         }
 
         fos.write(bytes);

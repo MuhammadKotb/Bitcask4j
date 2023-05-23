@@ -39,8 +39,21 @@ public class Keydir4j implements Keydir {
     }
 
     @Override
+    public Hint getHint(int key) {
+        return this.map.get(key);
+    }
+
+    @Override
     public String toString() {
         return this.map.toString();
     }
+
+    @Override
+    public void addHints(Map<Integer, Hint> hints) {
+        for(int k : hints.keySet()) {
+            this.map.put(k, hints.get(k));
+        }
+    }
+
     
 }

@@ -9,4 +9,5 @@ public interface BitcaskHandle {
     Status get(int key);
     int getCurrentFile();
     long getOffset();
+    Keydir getKeydir();
 }

@@ -1,7 +1,13 @@
 package caskj;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 
@@ -29,5 +35,17 @@ public class HintUtil {
         return bytes;
     }
     
+    protected static List<Byte[]> readHintsBytes(FileInputStream fis) throws IOException {
+        List<Byte[]> bytes = new ArrayList<Byte[]>();
+        byte[] bytesRead;
+        while((bytesRead = fis.readNBytes(28)).length == 28) {
+            Byte[] bytesReadObj = new Byte[bytesRead.length];
+            for(int i = 0; i < bytesRead.length; i++) {
+                bytesReadObj[i] = bytesRead[i];
+            }
+            bytes.add(bytesReadObj);
+        }
+        return bytes;
+    } 
 
 }

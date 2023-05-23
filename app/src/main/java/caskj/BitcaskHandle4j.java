@@ -17,9 +17,9 @@ import java.util.List;
 public class BitcaskHandle4j implements BitcaskHandle {
 
 
-    final private long maxFileSize_kb = 100;
+    final private long maxFileSize_kb = 10;
     final private long hintMaxFileSize_kb = 10;
-    private Keydir keydir;
+    public Keydir keydir;
     private File directory; 
     private File activeFile = null;
     private File activeHintFile = null;
@@ -31,8 +31,8 @@ public class BitcaskHandle4j implements BitcaskHandle {
 
     public BitcaskHandle4j(File dir) {
         directory = dir;
-        this.init();
         this.keydir = new Keydir4j();
+        this.init();
     }
 
 
@@ -47,6 +47,11 @@ public class BitcaskHandle4j implements BitcaskHandle {
     }
 
     @Override
+    public Keydir getKeydir() {
+        return this.keydir;
+    }
+
+    @Override
     public void append(int key, Status val) throws IOException {
         try {
             checkActiveFile();
@@ -56,20 +61,19 @@ public class BitcaskHandle4j implements BitcaskHandle {
             return;
         }
 
-        long offset_temp = offset;
-
+        
         offset += writeTstamp(this.bitcaskDataWriter);
         offset += writeKeySize(this.bitcaskDataWriter);
         offset += writeKey(this.bitcaskDataWriter, key);
-
-        int valSizetmp = writeValSize(this.bitcaskDataWriter, val); 
-        offset += valSizetmp;
+        
+        offset += writeValSize(this.bitcaskDataWriter, val); 
+        long offset_temp = offset;
         offset += writeVal(this.bitcaskDataWriter, val);
         
         this.bitcaskDataWriter.flush();
 
 
-        Hint hint = new Hint(currentFile, valSizetmp, offset_temp, val.timestamp);
+        Hint hint = new Hint(currentFile, StatusUtil.getStatusSize(val), offset_temp, val.timestamp);
 
         try {
             HintWriter.writeHint(bitcaskHintWriter, hint, key);
@@ -90,8 +94,27 @@ public class BitcaskHandle4j implements BitcaskHandle {
     
     @Override
     public Status get(int key) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'get'");
+
+        Hint hint = this.keydir.getHint(key);
+        if(hint == null) return null;
+        System.out.println(hint);
+        int currentFile = hint.fileId;
+        long offset = hint.valPos;
+        int len = hint.valSize;
+            
+        Status status = null;
+
+        try {
+            FileInputStream fis = new FileInputStream(new File(directory.getPath() + "/data" + currentFile));
+            status = StatusReader.readStatus(fis, offset, len); 
+            fis.close();
+        }
+        catch(Exception e) {
+            System.out.println("Could Not Read Value from File");
+            e.printStackTrace();
+        }
+
+        return status;
     }
     
 
@@ -149,38 +172,49 @@ public class BitcaskHandle4j implements BitcaskHandle {
             this.activeHintFile = hintFiles[hintFiles.length - 1];
             this.currentFile = (dataFiles.length) - 1;
             this.offset = dataFiles[dataFiles.length - 1].length();
+            this.initKeydir(hintFiles);
+        }
 
+    }
+    
+    private void initKeydir(File[] hintFiles) {
+        try {
+            for(int i = 0; i < hintFiles.length; i++) {
+                File file = hintFiles[i];
+                FileInputStream fis = new FileInputStream(file);
+                this.keydir.addHints(HintReader.readHints(fis));
+                fis.close();
+            }
+        } catch(Exception e) {
+            System.out.println("Could Init Keydir");
+            e.printStackTrace();
         }
     }
-
     private void checkActiveFile() throws IOException {
-        if(currentFile == 0 && this.activeFile == null) {
+        if(this.activeFile == null) {
             System.out.println("Created New");
             this.activeFile = createDataFile();
             this.activeHintFile = createHintFile();
             this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
             this.bitcaskHintWriter = new FileOutputStream(this.activeHintFile, true);
         }
-        else if(currentFile == 0 && this.activeFile != null) {
-            this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
-            this.bitcaskHintWriter = new FileOutputStream(this.activeHintFile, true);
-        }
-        else if(currentFile > 0 && this.activeFile != null) {
+        else {
             long size = this.getFileSize(activeFile);
             if(size >= this.maxFileSize_kb) {
                 System.out.println("Created New overflow");
+                currentFile++;
                 this.activeFile = createDataFile();
                 this.activeHintFile = createHintFile();
-                currentFile++;
                 offset = 0;
                 this.bitcaskDataWriter.flush();
                 this.bitcaskDataWriter.close();
                 this.bitcaskHintWriter.flush();
                 this.bitcaskHintWriter.close();
-                this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
-                this.bitcaskHintWriter = new FileOutputStream(this.activeHintFile, true);
             }
+            this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
+            this.bitcaskHintWriter = new FileOutputStream(this.activeHintFile, true);
         }
+
     }
 
 

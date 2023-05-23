@@ -8,9 +8,10 @@ public class StatusUtil {
     public static byte[] getBytes(Status status) {
 
         byte[] bytes;
+        int stringLen;
         try {
-            int StringLen = getStringBytes(status.batteryStatus);
-            bytes = new byte[28 + StringLen];
+            stringLen = getStringBytes(status.batteryStatus);
+            bytes = new byte[32 + stringLen];
         } catch(Exception e) {
             System.out.println("Could not Get String size");
             e.printStackTrace();  
@@ -24,6 +25,10 @@ public class StatusUtil {
         byte[] no = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(status.statusNo).array();
         for(int i = 0; i < no.length; i++) {
             bytes[ctr++] = no[i];
+        }
+        byte[] stringLenBytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(stringLen).array();
+        for(int i = 0; i < stringLenBytes.length; i++) {
+            bytes[ctr++] = stringLenBytes[i];
         }
         try {
             byte[] batteryStatus = status.batteryStatus.getBytes("UTF-8");
@@ -52,7 +57,7 @@ public class StatusUtil {
 
     protected static int getStatusSize(Status status) {
         try {
-            return 28 + getStringBytes(status.batteryStatus);
+            return 32 + getStringBytes(status.batteryStatus);
         } catch(Exception e) {
             System.out.println("Could not get Status size");
             e.printStackTrace();
