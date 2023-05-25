@@ -3,6 +3,7 @@ package caskj;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Keydir4j implements Keydir {
 
@@ -11,7 +12,7 @@ public class Keydir4j implements Keydir {
     private Map<Integer, Hint> map;
 
     public Keydir4j() {
-        this.map = new HashMap<>();
+        this.map = new ConcurrentHashMap<>();
     }
     @Override
     public int getFileId(int key) {

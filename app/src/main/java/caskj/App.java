@@ -5,7 +5,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
+
+// first byte
+// open -> 0
+// get -> 1
+// put -> 2
+// close -> 4
+
 
 
 
@@ -14,24 +23,13 @@ public class App {
 		
     public static void main(String[] args) {
         Bitcask bitcask = new Bitcask4j();
-        Status status = new Status();
-        status.stationId = 3;
-        status.statusNo = 220;
-        status.batteryStatus = "low";
-        status.timestamp = System.currentTimeMillis();
-        status.weather[0] = 55;
-        status.weather[1] = 90;
-        status.weather[2] = 30;
-
         try {
-            BitcaskHandle handle = bitcask.open(new File("/home/kotb/bitcaskDir"));
+            ServerSocket serverSocket = new ServerSocket(Integer.parseInt(args[0]));
             while(true) {
-                for(int i = 0; i < 10; i++) {
-                    bitcask.put(handle, i, status);                    
-                }
-                System.out.println("put");
-                Thread.sleep(1000);
+                Socket socket = serverSocket.accept();
+
             }
+           
         }
         catch(Exception e) {
             e.printStackTrace();

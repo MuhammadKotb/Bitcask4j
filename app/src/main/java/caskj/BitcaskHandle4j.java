@@ -1,5 +1,6 @@
 package caskj;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -34,6 +35,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
     private File directory; 
     
     public int currentFile = 0;   
+    private int filesLen = 0;
     public long offset = 0;
     
     private File activeFile = null;
@@ -46,14 +48,17 @@ public class BitcaskHandle4j implements BitcaskHandle {
 
     private Merger merger;
     private ScheduledThreadPoolExecutor threadPool;
+
+    private MergeControl mergeControl;
     
 
     public BitcaskHandle4j(File dir) throws IOException {
+        this.mergeControl = new MergeControl();
         directory = dir;
         this.fileComparator = new FileComparator();
         this.keydir = new Keydir4j();
         this.init();
-        this.threadPool = this.initMerger();
+        // this.threadPool = this.initMerger();
     }
 
 
@@ -85,34 +90,35 @@ public class BitcaskHandle4j implements BitcaskHandle {
         try {
             checkActiveFile();
         } catch(Exception e) {
-            System.out.println("Could Check Active file");
+            System.out.println("Could not Check Active file");
             e.printStackTrace();
             return;
         }
 
         
-        offset += writeTstamp(this.bitcaskDataWriter);
-        writeTstamp(bitcaskReplWriter);
+        long[] tstampRes = DataWriter.writeTstamp(this.bitcaskDataWriter);
+        offset += tstampRes[1];
+        DataWriter.writeTstamp(bitcaskReplWriter);
         
-        offset += writeKeySize(this.bitcaskDataWriter);
-        writeKeySize(bitcaskReplWriter);
+        offset += DataWriter.writeKeySize(this.bitcaskDataWriter);
+        DataWriter.writeKeySize(bitcaskReplWriter);
         
-        offset += writeKey(this.bitcaskDataWriter, key);
-        writeKey(bitcaskReplWriter, key);
+        offset += DataWriter.writeKey(this.bitcaskDataWriter, key);
+        DataWriter.writeKey(bitcaskReplWriter, key);
         
-        offset += writeValSize(this.bitcaskDataWriter, val);
-        writeValSize(bitcaskReplWriter, val); 
+        offset += DataWriter.writeValSize(this.bitcaskDataWriter, val);
+        DataWriter.writeValSize(bitcaskReplWriter, val); 
         
         long offset_temp = offset;
         
-        offset += writeVal(this.bitcaskDataWriter, val);
-        writeVal(bitcaskReplWriter, val);
+        offset += DataWriter.writeVal(this.bitcaskDataWriter, val);
+        DataWriter.writeVal(bitcaskReplWriter, val);
 
 
         this.bitcaskDataWriter.flush();
 
 
-        Hint hint = new Hint(currentFile, StatusUtil.getStatusSize(val), offset_temp, val.timestamp);
+        Hint hint = new Hint(currentFile, StatusUtil.getStatusSize(val), offset_temp, tstampRes[0]);
 
         try {
             HintWriter.writeHint(bitcaskHintWriter, hint, key);
@@ -143,7 +149,15 @@ public class BitcaskHandle4j implements BitcaskHandle {
         Status status = null;
 
         try {
-            FileInputStream fis = new FileInputStream(new File(directory.getPath() + "/data" + currentFile));
+            String fileName;
+            if(this.mergeControl.isMerging()) {
+                fileName = "/repl";
+            }
+            else {
+                fileName = "/data";
+            }
+            File file = new File(directory.getPath() + fileName + currentFile);
+            FileInputStream fis = new FileInputStream(file);
             status = StatusReader.readStatus(fis, offset, len); 
             fis.close();
         }
@@ -156,31 +170,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
     }
     
 
-    private int writeKeySize(FileOutputStream fos) throws IOException {
-        byte[] bytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(4).array();
-        fos.write(bytes);
-        return bytes.length;
-    }
-    private int writeKey(FileOutputStream fos, int key) throws IOException {
-        byte[] bytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(key).array();
-        fos.write(bytes);
-        return bytes.length;
-    }
-    private int writeValSize(FileOutputStream fos, Status val) throws IOException {
-        int bytesSize = StatusUtil.getStatusSize(val);
-        byte[] bytes = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE).putInt(bytesSize).array();
-        fos.write(bytes);
-        return bytes.length;
-    }
-    private int writeVal(FileOutputStream fos, Status val) throws IOException {
-        int bytes = StatusWriter.write(fos, val);
-        return bytes;
-    }
-    private int writeTstamp(FileOutputStream fileOut) throws IOException {
-        byte[] bytes = ByteBuffer.allocate(Long.SIZE / Byte.SIZE).putLong(System.currentTimeMillis()).array();
-        fileOut.write(bytes);
-        return bytes.length;
-    }
+
 
     private File createDataFile() {
         return new File(directory.getPath() + "/data" + currentFile);
@@ -199,7 +189,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
     
     private ScheduledThreadPoolExecutor initMerger() {
         ScheduledThreadPoolExecutor threadPool = new ScheduledThreadPoolExecutor(1);
-        this.merger = new Merger(this.directory, this.keydir);
+        this.merger = new Merger(this.directory, this.keydir, this.fileComparator, this.currentFile, this.mergeControl);
         threadPool.scheduleAtFixedRate(this.merger, 15, 15, TimeUnit.MINUTES);
         System.out.println("init merger");
         return threadPool;
@@ -224,7 +214,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
         File[] dataFiles = this.directory.listFiles((f -> f.getPath().contains("data")));
         File[] hintFiles = this.directory.listFiles((f -> f.getPath().contains("hint")));
         File[] replFiles = this.directory.listFiles((f -> f.getPath().contains("repl")));
-
+        filesLen = dataFiles.length - 1;
         if(dataFiles.length == 0) {
             this.offset = 0;
             this.currentFile = 0;
@@ -242,7 +232,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
             this.activeHintFile = hintFiles[hintFiles.length - 1];
             this.activeReplFile = replFiles[replFiles.length - 1];
             this.currentFile = Integer.parseInt(dataFiles[dataFiles.length - 1].getName().substring(4));
-            this.offset = dataFiles[dataFiles.length - 1].length();
+            this.offset = this.activeFile.length();
             this.initKeydir(hintFiles);
         }
         
@@ -256,7 +246,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
             
             System.out.println("Created New overflow");
             currentFile++;
-
+            filesLen++;
             this.activeFile = createDataFile();
             this.activeHintFile = createHintFile();
             this.activeReplFile = createReplFile();
@@ -274,9 +264,16 @@ public class BitcaskHandle4j implements BitcaskHandle {
             this.bitcaskReplWriter.flush();
             this.bitcaskReplWriter.close();
             this.bitcaskReplWriter = new FileOutputStream(this.activeReplFile, true);     
+            if(this.filesLen >= 5) {
+                Thread t = new Thread(new Merger(this.directory, this.keydir, this.fileComparator, this.currentFile, this.mergeControl));
+                t.run();
+                this.filesLen = 1;
+            }
         }
     
     }
+
+    
     
     
     
