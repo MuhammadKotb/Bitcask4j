@@ -1,24 +1,33 @@
 package caskj;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.Comparator;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 public class BitcaskHandle4j implements BitcaskHandle {
 
+    
 
+    private class FileComparator implements Comparator<File> {
+
+        @Override
+        public int compare(File f1, File f2) {
+            return Integer.compare(Integer.parseInt(f1.getName().substring(4)), Integer.parseInt(f2.getName().substring(4)));
+        }
+
+    }
+
+    private FileComparator fileComparator;
+    
+    
     final private long maxFileSize_kb = 10;
-    final private long hintMaxFileSize_kb = 10;
     public Keydir keydir;
     private File directory; 
     private File activeFile = null;
@@ -29,10 +38,16 @@ public class BitcaskHandle4j implements BitcaskHandle {
     private FileOutputStream bitcaskHintWriter = null;
 
 
-    public BitcaskHandle4j(File dir) {
+    private Merger merger;
+    private ScheduledThreadPoolExecutor threadPool;
+    
+
+    public BitcaskHandle4j(File dir) throws IOException {
         directory = dir;
+        this.fileComparator = new FileComparator();
         this.keydir = new Keydir4j();
         this.init();
+        this.threadPool = this.initMerger();
     }
 
 
@@ -49,6 +64,12 @@ public class BitcaskHandle4j implements BitcaskHandle {
     @Override
     public Keydir getKeydir() {
         return this.keydir;
+    }
+    @Override 
+    public void destroy() throws IOException {
+        this.threadPool.close();
+        this.bitcaskDataWriter.close();
+        this.bitcaskHintWriter.close();
     }
 
     @Override
@@ -88,8 +109,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
 
     @Override
     public void merge() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'merge'");
+       
     }
     
     @Override
@@ -155,26 +175,13 @@ public class BitcaskHandle4j implements BitcaskHandle {
     private long getFileSize(File file) {
         return file.length() / (1024);
     }
-
-
-    private void init() {
-        File[] dataFiles = this.directory.listFiles((f -> f.getPath().contains("data")));
-        File[] hintFiles = this.directory.listFiles((f -> f.getPath().contains("hint")));
-        
-        if(dataFiles.length == 0) {
-            this.offset = 0;
-            this.currentFile = 0;
-        }
-        else {
-            Arrays.sort(dataFiles);
-            Arrays.sort(hintFiles);
-            this.activeFile = dataFiles[dataFiles.length - 1];
-            this.activeHintFile = hintFiles[hintFiles.length - 1];
-            this.currentFile = (dataFiles.length) - 1;
-            this.offset = dataFiles[dataFiles.length - 1].length();
-            this.initKeydir(hintFiles);
-        }
-
+    
+    private ScheduledThreadPoolExecutor initMerger() {
+        ScheduledThreadPoolExecutor threadPool = new ScheduledThreadPoolExecutor(1);
+        this.merger = new Merger(this.directory, this.keydir);
+        threadPool.scheduleAtFixedRate(this.merger, 15, 15, TimeUnit.MINUTES);
+        System.out.println("init merger");
+        return threadPool;
     }
     
     private void initKeydir(File[] hintFiles) {
@@ -190,33 +197,52 @@ public class BitcaskHandle4j implements BitcaskHandle {
             e.printStackTrace();
         }
     }
-    private void checkActiveFile() throws IOException {
-        if(this.activeFile == null) {
-            System.out.println("Created New");
+
+
+    private void init() throws IOException{
+        File[] dataFiles = this.directory.listFiles((f -> f.getPath().contains("data")));
+        File[] hintFiles = this.directory.listFiles((f -> f.getPath().contains("hint")));
+        
+        if(dataFiles.length == 0) {
+            this.offset = 0;
+            this.currentFile = 0;
             this.activeFile = createDataFile();
             this.activeHintFile = createHintFile();
             this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
             this.bitcaskHintWriter = new FileOutputStream(this.activeHintFile, true);
         }
         else {
-            long size = this.getFileSize(activeFile);
-            if(size >= this.maxFileSize_kb) {
-                System.out.println("Created New overflow");
-                currentFile++;
-                this.activeFile = createDataFile();
-                this.activeHintFile = createHintFile();
-                offset = 0;
-                this.bitcaskDataWriter.flush();
-                this.bitcaskDataWriter.close();
-                this.bitcaskHintWriter.flush();
-                this.bitcaskHintWriter.close();
-            }
+            Arrays.sort(dataFiles, this.fileComparator);
+            Arrays.sort(hintFiles, this.fileComparator);
+            System.out.println(dataFiles[dataFiles.length - 1].getName());
+            this.activeFile = dataFiles[dataFiles.length - 1];
+            this.activeHintFile = hintFiles[hintFiles.length - 1];
+            this.currentFile = (dataFiles.length) - 1;
+            this.offset = dataFiles[dataFiles.length - 1].length();
             this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
             this.bitcaskHintWriter = new FileOutputStream(this.activeHintFile, true);
+            this.initKeydir(hintFiles);
         }
 
     }
-
-
+    private void checkActiveFile() throws IOException {
+        long size = this.getFileSize(activeFile);
+        if(size >= this.maxFileSize_kb) {
+            System.out.println("Created New overflow");
+            currentFile++;
+            this.activeFile = createDataFile();
+            this.activeHintFile = createHintFile();
+            offset = 0;
+            this.bitcaskDataWriter.flush();
+            this.bitcaskDataWriter.close();
+            this.bitcaskHintWriter.flush();
+            this.bitcaskHintWriter.close();
+            this.bitcaskDataWriter = new FileOutputStream(this.activeFile, true);
+            this.bitcaskHintWriter = new FileOutputStream(this.activeHintFile, true);
+        }
+    
+    }
+    
+    
     
 }

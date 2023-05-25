@@ -1,6 +1,7 @@
 package caskj;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 
@@ -11,5 +12,5 @@ public interface Bitcask {
     List<Integer> listKeys(BitcaskHandle bitCaskHandle);
     void merge(File dir);
     void sync(BitcaskHandle bitCaskHandle);
-    void close(BitcaskHandle bitCaskHandle);
+    void close(BitcaskHandle bitCaskHandle) throws IOException;
 }

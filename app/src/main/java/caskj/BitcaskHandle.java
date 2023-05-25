@@ -10,4 +10,5 @@ public interface BitcaskHandle {
     int getCurrentFile();
     long getOffset();
     Keydir getKeydir();
+    void destroy() throws IOException;
 }

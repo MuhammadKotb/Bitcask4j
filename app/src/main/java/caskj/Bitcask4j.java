@@ -1,6 +1,7 @@
 package caskj;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
@@ -60,9 +61,8 @@ public class Bitcask4j implements Bitcask {
     }
 
     @Override
-    public void close(BitcaskHandle bitCaskHandle) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'close'");
+    public void close(BitcaskHandle bitCaskHandle) throws IOException {
+        bitCaskHandle.destroy();
     }
 
   
