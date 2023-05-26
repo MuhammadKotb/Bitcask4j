@@ -13,6 +13,10 @@ public class StatusReader {
         byte[] bytes = new byte[len];
         fis.skip(offset);
         fis.read(bytes);
+        return statusFromBytes(bytes);
+    }
+
+    protected static Status statusFromBytes(byte[] bytes) {
         byte[] stationIdBytes = Arrays.copyOfRange(bytes, 0, 4);
         byte[] statusNoBytes = Arrays.copyOfRange(bytes, 4, 8);
         byte[] stringLenBytes = Arrays.copyOfRange(bytes, 8, 12);
@@ -32,7 +36,6 @@ public class StatusReader {
         weather[0] = ByteBuffer.wrap(weather0Bytes).getInt();
         weather[1] = ByteBuffer.wrap(weather1Bytes).getInt(); 
         weather[2] = ByteBuffer.wrap(weather2Bytes).getInt(); 
-
 
         return new Status(stationId, statusNo, batteryStatus, tstamp, weather);
 

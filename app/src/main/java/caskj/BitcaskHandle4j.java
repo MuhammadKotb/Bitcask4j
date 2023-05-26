@@ -46,8 +46,6 @@ public class BitcaskHandle4j implements BitcaskHandle {
     private FileOutputStream bitcaskHintWriter = null;
     private FileOutputStream bitcaskReplWriter = null;
 
-    private Merger merger;
-    private ScheduledThreadPoolExecutor threadPool;
 
     private MergeControl mergeControl;
     
@@ -78,7 +76,6 @@ public class BitcaskHandle4j implements BitcaskHandle {
     }
     @Override 
     public void destroy() throws IOException {
-        this.threadPool.close();
         this.bitcaskDataWriter.flush();
         this.bitcaskDataWriter.close();
         this.bitcaskHintWriter.flush();
@@ -141,7 +138,6 @@ public class BitcaskHandle4j implements BitcaskHandle {
 
         Hint hint = this.keydir.getHint(key);
         if(hint == null) return null;
-        System.out.println(hint);
         int currentFile = hint.fileId;
         long offset = hint.valPos;
         int len = hint.valSize;
@@ -187,13 +183,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
         return file.length() / (1024);
     }
     
-    private ScheduledThreadPoolExecutor initMerger() {
-        ScheduledThreadPoolExecutor threadPool = new ScheduledThreadPoolExecutor(1);
-        this.merger = new Merger(this.directory, this.keydir, this.fileComparator, this.currentFile, this.mergeControl);
-        threadPool.scheduleAtFixedRate(this.merger, 15, 15, TimeUnit.MINUTES);
-        System.out.println("init merger");
-        return threadPool;
-    }
+
     
     private void initKeydir(File[] hintFiles) {
         try {

@@ -2,7 +2,7 @@ package caskj;
 
 import java.util.Map;
 
-public class SocketDecoder {
+public class MessageDecoder {
 
     protected static void decodeOpen() {
 
