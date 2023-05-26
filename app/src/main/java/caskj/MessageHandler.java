@@ -54,7 +54,7 @@ public class MessageHandler {
                 } 
                 case "get" : {
                     if(this.handle == null) return Response.COULD_NOT_GET_STATUS.name();
-                    bitcask.get(this.handle, decodeGet(bytes));
+                    System.out.println(bitcask.get(this.handle, decodeGet(bytes)));
                     return Response.GET_SUCESSFULLY.name();
                 } 
                 case "put" : {

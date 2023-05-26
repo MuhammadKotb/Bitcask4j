@@ -206,6 +206,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
         File[] replFiles = this.directory.listFiles((f -> f.getPath().contains("repl")));
         filesLen = dataFiles.length - 1;
         if(dataFiles.length == 0) {
+            this.filesLen = 0;
             this.offset = 0;
             this.currentFile = 0;
             this.activeFile = createDataFile();
