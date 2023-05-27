@@ -80,6 +80,8 @@ public class BitcaskHandle4j implements BitcaskHandle {
         this.bitcaskDataWriter.close();
         this.bitcaskHintWriter.flush();
         this.bitcaskHintWriter.close();
+        this.bitcaskReplWriter.flush();
+        this.bitcaskReplWriter.close();
     }
 
     @Override
@@ -113,6 +115,7 @@ public class BitcaskHandle4j implements BitcaskHandle {
 
 
         this.bitcaskDataWriter.flush();
+        this.bitcaskReplWriter.flush();
 
 
         Hint hint = new Hint(currentFile, StatusUtil.getStatusSize(val), offset_temp, tstampRes[0]);
